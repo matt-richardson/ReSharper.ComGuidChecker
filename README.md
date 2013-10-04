@@ -1,6 +1,7 @@
 ## COM Guid Problem Analyser for ReSharper ##
 
 This plugin provides a problem analyser for the [`assembly:Guid`](http://msdn.microsoft.com/en-us/library/system.runtime.interopservices.guidattribute.aspx) attribute, highlighting when a non-unique guid is found.
+Also provides a quick fix to generate a new Guid.
 
 For ReSharper 8
 -
