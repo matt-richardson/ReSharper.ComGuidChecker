@@ -5,8 +5,6 @@ using JetBrains.ReSharper.Daemon.Stages;
 using JetBrains.ReSharper.Daemon.Stages.Dispatcher;
 using JetBrains.ReSharper.Psi;
 using JetBrains.ReSharper.Psi.CSharp.Tree;
-using JetBrains.ReSharper.Psi.Services.CSharp.StructuralSearch;
-using JetBrains.ReSharper.Psi.Services.CSharp.StructuralSearch.Placeholders;
 using JetBrains.ReSharper.Psi.Tree;
 
 namespace ReSharper.ComGuidChecker
@@ -16,64 +14,58 @@ namespace ReSharper.ComGuidChecker
     {
         protected override void Run(IAttributeSection attributeSection, ElementProblemAnalyzerData data, IHighlightingConsumer consumer)
         {
-            if (attributeSection.Target.Name != "assembly") return;
-            if (attributeSection.AttributeList == null) return;
-            var firstAttribute = attributeSection.AttributeList.FirstChild as IAttribute;
-            if (firstAttribute == null) return;
-            if (firstAttribute.Name.QualifiedName != "Guid") return;
+            if (!Helper.IsValidTarget(attributeSection)) return;
 
-            if (firstAttribute.Arguments.Count == 0) return;
-            var argument = firstAttribute.Arguments.First();
-            var expression = argument.Value as ICSharpLiteralExpression;
-            if (expression == null) return;
-            
+            var expression = Helper.GetExpression(attributeSection);
+
             var currentGuid = expression.Literal.GetText();
 
             var found = DoesThisGuidExistInAnyOtherProject(attributeSection.GetSolution(), attributeSection.GetProject(), currentGuid);
             if (found)
             {
-                consumer.AddHighlighting(new DuplicateComGuidsHighlighting(currentGuid), expression.GetDocumentRange(), attributeSection.GetContainingFile());
+                consumer.AddHighlighting(new DuplicateComGuidsHighlighting(expression), expression.GetDocumentRange(), attributeSection.GetContainingFile());
             }
         }
 
         private static bool DoesThisGuidExistInAnyOtherProject(IProjectCollection solution, IProject currentProject, string currentGuid)
         {
-            var placeHolder = new ArgumentPlaceholder("guid", 1, 1);
-            var pattern = new CSharpStructuralSearchPattern("[assembly: Guid($guid$)]", placeHolder);
-            var matcher = pattern.CreateMatcher();
+            var projects = solution.GetAllProjects()
+                .Where(p => p.IsProjectFromUserView())
+                .Where(project => ProjectIsDifferent(currentProject, project));
+            
+            return projects.Any(project => HasAssemblyGuid(currentGuid, project));
+        }
 
+        private static bool ProjectIsDifferent(IProject currentProject, IProject project)
+        {
+            return project.ProjectFileLocation != currentProject.ProjectFileLocation;
+        }
+
+        private static bool HasAssemblyGuid(string currentGuid, IProject project)
+        {
+            return project.GetAllProjectFiles().Any(file => HasAssemblyGuid(currentGuid, file));
+        }
+
+        private static bool HasAssemblyGuid(string currentGuid, IProjectFile file)
+        {
             var found = false;
-
-            foreach (var project in solution.GetAllProjects().Where(p => p.IsProjectFromUserView()))
+            var psiFile = file.GetPrimaryPsiFile();
+            psiFile.ProcessChildren<IAttributeSection>(attributeSection =>
             {
-                if (project.ProjectFileLocation != currentProject.ProjectFileLocation)
-                {
-                    foreach (var file in project.GetAllProjectFiles())
-                    {
-                        var psiFile = file.GetPrimaryPsiFile();
-                        psiFile.ProcessChildren<IAttributeSection>(attributeSection =>
-                        {
-                            if (attributeSection.Target.Name != "assembly") return;
-                            if (attributeSection.AttributeList == null) return;
-                            var firstAttribute = attributeSection.AttributeList.FirstChild as IAttribute;
-                            if (firstAttribute == null) return;
-
-                            var structuralMatchResult = matcher.Match(firstAttribute);
-                            if (structuralMatchResult.Matched)
-                            {
-                                var guid = structuralMatchResult.GetMatch("guid") as ICSharpLiteralExpression;
-                                if (guid != null && guid.GetText() == currentGuid)
-                                {
-                                    found = true;
-                                }
-                            }
-                        });
-                        if (found) break;
-                    }
-                    if (found) break;
-                }
-            }
+                found = found || HasAssemblyGuid(currentGuid, attributeSection);
+            });
             return found;
+        }
+
+        private static bool HasAssemblyGuid(string currentGuid, IAttributeSection attributeSection)
+        {
+            if (!Helper.IsValidTarget(attributeSection))
+                return false;
+            
+            var expression = Helper.GetExpression(attributeSection);
+            var guid = expression.Literal.GetText();
+
+            return guid == currentGuid;
         }
     }
 }

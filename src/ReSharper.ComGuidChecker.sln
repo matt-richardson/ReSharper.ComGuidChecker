@@ -1,6 +1,6 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio Express 2012 for Web
+# Visual Studio 2010
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ReSharper.ComGuidChecker.8.x", "ReSharper.ComGuidChecker\ReSharper.ComGuidChecker.8.x.csproj", "{1F2C9F8F-F834-44E9-9046-2E898846851C}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".nuget", ".nuget", "{D0286AE9-A56A-42B2-9F10-31F0007156DF}"
@@ -9,11 +9,6 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".nuget", ".nuget", "{D0286A
 		.nuget\NuGet.exe = .nuget\NuGet.exe
 		.nuget\NuGet.targets = .nuget\NuGet.targets
 		.nuget\ReSharper.ComGuidChecker.nuspec = .nuget\ReSharper.ComGuidChecker.nuspec
-	EndProjectSection
-EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "ExternalAnnotations", "ExternalAnnotations", "{ACF6608A-199E-4F26-881E-5D4FEC3D69D5}"
-	ProjectSection(SolutionItems) = preProject
-		Attributes.xml = Attributes.xml
 	EndProjectSection
 EndProject
 Global
